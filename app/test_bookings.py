@@ -127,7 +127,7 @@ def test_different_guest_same_unit_booking(test_db):
     response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
     assert response.status_code == 200, response.text
 
-    # GuestB trying to book a unit that is already occuppied
+    # GuestB trying to book a unit that is already occupied
     response = client.post("/api/v1/booking", json=GUEST_B_UNIT_1)
     assert response.status_code == 400, response.text
     assert (
@@ -137,12 +137,12 @@ def test_different_guest_same_unit_booking(test_db):
 
 
 @pytest.mark.freeze_time("2023-05-21")
-def test_different_guest_same_unit_booking_different_date(test_db):
+def test_different_guest_same_unit_booking_different_date_occupied(test_db):
     # Create first booking
     response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
     assert response.status_code == 200, response.text
 
-    # GuestB trying to book a unit that is already occuppied
+    # GuestB trying to book a unit that is already occupied
     response = client.post(
         "/api/v1/booking",
         json={
