@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -29,19 +30,25 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
-
-GUEST_A_UNIT_1: dict = {
-    'unit_id': '1', 'guest_name': 'GuestA', 'check_in_date': datetime.date.today().strftime('%Y-%m-%d'),
-    'number_of_nights': 5
-}
-GUEST_A_UNIT_2: dict = {
-    'unit_id': '2', 'guest_name': 'GuestA', 'check_in_date': datetime.date.today().strftime('%Y-%m-%d'),
-    'number_of_nights': 5
-}
-GUEST_B_UNIT_1: dict = {
-    'unit_id': '1', 'guest_name': 'GuestB', 'check_in_date': datetime.date.today().strftime('%Y-%m-%d'),
-    'number_of_nights': 5
-}
+with freeze_time("2023-05-21"):
+    GUEST_A_UNIT_1: dict = {
+        "unit_id": "1",
+        "guest_name": "GuestA",
+        "check_in_date": datetime.date.today().strftime("%Y-%m-%d"),
+        "number_of_nights": 5,
+    }
+    GUEST_A_UNIT_2: dict = {
+        "unit_id": "2",
+        "guest_name": "GuestA",
+        "check_in_date": datetime.date.today().strftime("%Y-%m-%d"),
+        "number_of_nights": 5,
+    }
+    GUEST_B_UNIT_1: dict = {
+        "unit_id": "1",
+        "guest_name": "GuestB",
+        "check_in_date": datetime.date.today().strftime("%Y-%m-%d"),
+        "number_of_nights": 5,
+    }
 
 
 @pytest.fixture()
