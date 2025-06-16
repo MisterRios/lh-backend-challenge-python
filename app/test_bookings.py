@@ -98,6 +98,30 @@ def test_same_guest_different_unit_booking(test_db):
 
 
 @pytest.mark.freeze_time("2023-05-21")
+def test_same_guest_same_unit_booking_different_date(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+    response.raise_for_status()
+
+    # Guests want to book same unit again, ten days later
+    response = client.post(
+        "/api/v1/booking",
+        json={
+            "unit_id": "1",  # same unit
+            "guest_name": "GuestA",  # different guest
+            # check_in date of GUEST A + 10, the unit is free on this date
+            "check_in_date": (datetime.date.today() + datetime.timedelta(10)).strftime(
+                "%Y-%m-%d"
+            ),
+            "number_of_nights": 5,
+        },
+    )
+    assert response.status_code == 200, response.text
+    response.raise_for_status()
+
+
+@pytest.mark.freeze_time("2023-05-21")
 def test_different_guest_same_unit_booking(test_db):
     # Create first booking
     response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
@@ -137,3 +161,26 @@ def test_different_guest_same_unit_booking_different_date(test_db):
         response.json()["detail"]
         == "For the given check-in date, the unit is already occupied"
     )
+
+
+@pytest.mark.freeze_time("2023-05-21")
+def test_different_guest_same_unit_booking_different_date_unoccupied(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+
+    # GuestB trying to book a unit that is no longer occupied ten days later
+    response = client.post(
+        "/api/v1/booking",
+        json={
+            "unit_id": "1",  # same unit
+            "guest_name": "GuestB",  # different guest
+            # check_in date of GUEST A + 1, the unit is already booked on this date
+            "check_in_date": (datetime.date.today() + datetime.timedelta(10)).strftime(
+                "%Y-%m-%d"
+            ),
+            "number_of_nights": 5,
+        },
+    )
+    assert response.status_code == 200, response.text
+    response.raise_for_status()
