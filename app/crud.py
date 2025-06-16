@@ -1,6 +1,7 @@
 import datetime
-from typing import Set, Tuple
+from typing import Optional, Set, Tuple, Union
 
+from sqlalchemy import Column
 from sqlalchemy.orm import Session
 
 from . import models, schemas
@@ -26,7 +27,10 @@ def create_booking(db: Session, booking: schemas.BookingBase) -> models.Booking:
     return db_booking
 
 
-def get_occupancy_dates(check_in_date: datetime.date, nights: int) -> Set[str]:
+def get_occupancy_dates(
+    check_in_date: Union[datetime.date, Column[datetime.date]],
+    nights: Union[int, Column[int]],
+) -> Set[str]:
     return set(
         (check_in_date + datetime.timedelta(days=night)).strftime("%Y-%m-%d")
         for night in range(0, nights)
