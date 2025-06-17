@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
@@ -32,5 +32,16 @@ def create_booking(booking: schemas.BookingBase, db: Session = Depends(get_db)):
     try:
         return crud.create_booking(db=db, booking=booking)
     except UnableToBook as unable_to_book:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST,
-                            detail=str(unable_to_book))
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(unable_to_book)
+        )
+
+
+@app.post("/api/v1/booking/extend/")
+def extend_booking(booking: schemas.BookingBase, db: Session = Depends(get_db)):
+    try:
+        return crud.extend_booking(db=db, booking=booking)
+    except UnableToBook as unable_to_book:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=str(unable_to_book)
+        )
