@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Set, Tuple, Union
+from typing import Set, Tuple, Union
 
 from sqlalchemy import Column
 from sqlalchemy.orm import Session
@@ -25,6 +25,45 @@ def create_booking(db: Session, booking: schemas.BookingBase) -> models.Booking:
     db.commit()
     db.refresh(db_booking)
     return db_booking
+
+
+def extend_booking(db: Session, booking: schemas.BookingBase) -> models.Booking:
+    current_booking = (
+        db.query(models.Booking)
+        .filter_by(
+            guest_name=booking.guest_name,
+            unit_id=booking.unit_id,
+            check_in_date=booking.check_in_date,
+        )
+        .first()
+    )
+    if current_booking is None:
+        raise UnableToBook("Unable to find current booking")
+
+    if current_booking.number_of_nights >= booking.number_of_nights:
+        raise UnableToBook(
+            "Number of nights to extend is fewer than current number of nights"
+        )
+    # get revised check_in_date and difference number of nights to leverage
+    # is_booking_possible validator
+    desired_number_of_nights = booking.number_of_nights
+    booking.check_in_date = current_booking.check_in_date + datetime.timedelta(
+        current_booking.number_of_nights
+    )
+    booking.number_of_nights = (
+        desired_number_of_nights - current_booking.number_of_nights
+    )
+    # leverage is_booking_possible validator
+    (is_possible, reason) = is_booking_possible(db=db, booking=booking)
+    if not is_possible:
+        raise UnableToBook(reason)
+
+    # update number of nights to desired amount
+    current_booking.number_of_nights = desired_number_of_nights
+
+    db.commit()
+    db.refresh(current_booking)
+    return current_booking
 
 
 def get_occupancy_dates(
