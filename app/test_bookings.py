@@ -49,6 +49,24 @@ with freeze_time("2023-05-21"):
         "check_in_date": datetime.date.today().strftime("%Y-%m-%d"),
         "number_of_nights": 5,
     }
+    GUEST_A_UNIT_1_TEN_NIGHTS: dict = {
+        "unit_id": "1",
+        "guest_name": "GuestA",
+        "check_in_date": datetime.date.today().strftime("%Y-%m-%d"),
+        "number_of_nights": 10,
+    }
+    GUEST_A_UNIT_2_TEN_NIGHTS: dict = {
+        "unit_id": "2",
+        "guest_name": "GuestA",
+        "check_in_date": datetime.date.today().strftime("%Y-%m-%d"),
+        "number_of_nights": 10,
+    }
+    GUEST_B_UNIT_1_TEN_NIGHTS: dict = {
+        "unit_id": "1",
+        "guest_name": "GuestB",
+        "check_in_date": datetime.date.today().strftime("%Y-%m-%d"),
+        "number_of_nights": 10,
+    }
 
 
 @pytest.fixture()
@@ -184,3 +202,96 @@ def test_different_guest_same_unit_booking_different_date_unoccupied(test_db):
     )
     assert response.status_code == 200, response.text
     response.raise_for_status()
+
+
+@pytest.mark.freeze_time("2023-05-21")
+def test_extend_booking_successful(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+
+
+@pytest.mark.freeze_time("2023-05-21")
+def test_extend_booking__no_booking__different_checkin_date(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+
+    # Guests want to extend same unit
+    response = client.post("/api/v1/booking/extend", json=GUEST_A_UNIT_1_TEN_NIGHTS)
+    assert response.status_code == 200, response.text
+    response.raise_for_status()
+
+    response_json = response.json()
+    assert response_json["unit_id"] == GUEST_A_UNIT_1_TEN_NIGHTS["unit_id"]
+    assert response_json["guest_name"] == GUEST_A_UNIT_1_TEN_NIGHTS["guest_name"]
+    assert response_json["check_in_date"] == GUEST_A_UNIT_1_TEN_NIGHTS["check_in_date"]
+    assert (
+        response_json["number_of_nights"]
+        == GUEST_A_UNIT_1_TEN_NIGHTS["number_of_nights"]
+    )
+
+
+@pytest.mark.freeze_time("2023-05-21")
+def test_extend_booking__no_booking__different_guest(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+
+    # Different guest wants to extend same unit
+    response = client.post("/api/v1/booking/extend", json=GUEST_B_UNIT_1_TEN_NIGHTS)
+    assert response.status_code == 400, response.text
+    assert response.json()["detail"] == "Unable to find current booking"
+
+
+@pytest.mark.freeze_time("2023-05-21")
+def test_extend_booking__no_booking__different_unit(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+
+    # Different guest wants to extend same unit
+    response = client.post("/api/v1/booking/extend", json=GUEST_A_UNIT_2_TEN_NIGHTS)
+    assert response.status_code == 400, response.text
+    assert response.json()["detail"] == "Unable to find current booking"
+
+
+@pytest.mark.freeze_time("2023-05-21")
+def test_extend_booking_too_few_nights(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+
+    # Extend booking with too few nights
+    response = client.post(
+        "/api/v1/booking/extend",
+        json={
+            "unit_id": "1",  # same unit
+            "guest_name": "GuestA",  # same guest
+            "check_in_date": datetime.date.today().strftime(
+                "%Y-%m-%d"
+            ),  # same check_in_date
+            # too few nights to extend
+            "number_of_nights": 4,
+        },
+    )
+    assert response.status_code == 400, response.text
+    assert (
+        response.json()["detail"]
+        == "Number of nights to extend is fewer than current number of nights"
+    )
+
+
+@pytest.mark.freeze_time("2023-05-21")
+def test_extend_booking_same_number_of_nights(test_db):
+    # Create first booking
+    response = client.post("/api/v1/booking", json=GUEST_A_UNIT_1)
+    assert response.status_code == 200, response.text
+
+    # Different guest wants to extend same unit
+    response = client.post("/api/v1/booking/extend", json=GUEST_A_UNIT_1)
+    assert response.status_code == 400, response.text
+    assert (
+        response.json()["detail"]
+        == "Number of nights to extend is fewer than current number of nights"
+    )
